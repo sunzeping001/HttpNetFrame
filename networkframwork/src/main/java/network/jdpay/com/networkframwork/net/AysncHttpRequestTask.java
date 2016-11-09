@@ -17,33 +17,38 @@ import org.apache.http.params.HttpParams;
 @SuppressWarnings("ALL") public class AysncHttpRequestTask implements Runnable {
 
   private HttpUriRequest mHttpRequest;
-  private RequestCallback mCallback;
   private AsyncHttpReponseHandler mReponseHandler;
-  private final static int TIME_OUT = 30000;
+  private HttpClient mClient;
+  private final static int TIME_OUT = 10 * 1000;
 
-  public AysncHttpRequestTask(HttpUriRequest request, RequestCallback callback,AsyncHttpReponseHandler handler) {
+  public AysncHttpRequestTask(HttpUriRequest request,
+      AsyncHttpReponseHandler handler) {
     this.mHttpRequest = request;
-    this.mCallback = callback;
     this.mReponseHandler = handler;
   }
 
   @Override public void run() {
-    try {
-
-    } catch (IOException ex) {
-      if(mReponseHandler != null){
-          mReponseHandler.
-      }
-    }
+    makeRequest();
   }
 
-  private void sendRequest() throws IOException{
+  public void makeRequest() {
+    try {
+      sendRequest();
+    } catch (IOException ex) {
+      if (mReponseHandler != null) {
+        mReponseHandler.sendCancelMessage();
+      }
+    }
+    this.abortRequest();
+  }
+
+  private void sendRequest() throws IOException {
     HttpResponse response = getHttpResponse();
     if (!Thread.currentThread().isInterrupted()) {
-      if(this.mReponseHandler != null){
-        this.mReponseHandler.sendResponseMessage(mHttpRequest,response);
+      if (this.mReponseHandler != null) {
+        this.mReponseHandler.sendResponseMessage(mHttpRequest, response);
       }
-    }else if(this.mReponseHandler != null){
+    } else if (this.mReponseHandler != null) {
       this.mReponseHandler.sendCancelMessage();
     }
   }
@@ -51,7 +56,21 @@ import org.apache.http.params.HttpParams;
   private HttpResponse getHttpResponse() throws IOException {
     HttpParams httpParams = new BasicHttpParams();
     HttpConnectionParams.setConnectionTimeout(httpParams, TIME_OUT);
-    HttpClient client = new DefaultHttpClient(httpParams);
-    return client.execute(mHttpRequest);
+    mClient = new DefaultHttpClient(httpParams);
+    return mClient.execute(mHttpRequest);
+  }
+
+  private void abortRequest() {
+    try {
+      this.mHttpRequest.abort();
+    } catch (Exception e) {
+    }
+  }
+
+  private void cleanConnections() {
+    try {
+      this.mClient.getConnectionManager().closeExpiredConnections();
+    } catch (Exception e) {
+    }
   }
 }

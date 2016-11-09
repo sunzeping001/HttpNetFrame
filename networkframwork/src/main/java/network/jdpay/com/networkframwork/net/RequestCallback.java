@@ -6,9 +6,5 @@ package network.jdpay.com.networkframwork.net;
  * Desc:
  */
 public interface RequestCallback {
-  void onSuccess(String response);
-  void onFaile(String message);
-  void onSMS(String reponse);
-  void onVerifyFaile(String reponse);
-
+  void callBack(TypeResult result);
 }
